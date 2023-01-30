@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+option go_package = "/datapb";
+
+package datapb;
+
+service Agent {
+	rpc RemoteTrigger (TriggerRequest) returns (TriggerReply) {}
+}
+
+service Coordinator {
+	rpc LocalTrigger (TriggerRequest) returns (TriggerReply) {}
+	rpc Breadcrumbs (BreadcrumbsRequest) returns (BreadcrumbsReply) {}
+}
+
+message Trigger {
+	int32 queue_id = 1;
+	fixed64 base_trace_id = 2;
+	repeated fixed64 trace_ids = 3;
+}
+
+message TriggerRequest {
+	string src = 1;
+	repeated Trigger triggers = 2;
+}
+
+message TriggerReply {
+}
+
+message BreadcrumbAddress {
+	int32 id = 1;
+	string addr = 2;
+}
+
+message Breadcrumbs {
+	fixed64 trace_id = 1;
+	repeated int32 addrs = 2;
+}
+
+message BreadcrumbsRequest {
+	string src = 1;
+	repeated BreadcrumbAddress addresses = 2;
+	repeated Breadcrumbs breadcrumbs = 3;
+}
+
+message BreadcrumbsReply {
+}
