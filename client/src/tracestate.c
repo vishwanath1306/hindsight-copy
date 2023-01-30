@@ -147,13 +147,39 @@ void tracestate_write_data(TraceState* trace,
 }
 
 // Writes data to the trace; called by tracepoint
+// void tracestate_write(TraceState* trace, 
+//                       BufManager* mgr,
+//                       char* buf,
+//                       size_t buf_size) {
+//     if (trace->recording) {
+//         char* dst;
+//         size_t dst_size;
+
+//         while (buf_size != 0) {
+//             // Try to write everything
+//             tracestate_write_data(trace, mgr, buf_size, &dst, &dst_size);
+
+//             // Write what we're allowed
+//             memcpy((void*) dst, (void*) buf, dst_size);
+
+//             buf += dst_size;
+//             buf_size -= dst_size;
+//         }
+//     }
+// }
+
 void tracestate_write(TraceState* trace, 
                       BufManager* mgr,
                       char* buf,
                       size_t buf_size) {
     if (trace->recording) {
         char* dst;
+        char* head;
         size_t dst_size;
+        size_t written = 0;
+        
+        tracestate_write_data(trace, mgr, sizeof(size_t), &head, &dst_size);
+        *(size_t *)head = written; // nothing written yet
 
         while (buf_size != 0) {
             // Try to write everything
@@ -164,6 +190,8 @@ void tracestate_write(TraceState* trace,
 
             buf += dst_size;
             buf_size -= dst_size;
+            written += dst_size;
+            *(size_t *)head = written; // update counter
         }
     }
 }

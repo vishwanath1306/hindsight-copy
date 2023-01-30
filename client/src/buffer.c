@@ -235,11 +235,24 @@ void buffer_write(Buffer* b, size_t size, char** dst, size_t* dst_size) {
     b->ptr += size;
 }
 
-bool buffer_try_write_all(Buffer *b, char* buf, size_t buf_size) {
-    if (b->remaining < buf_size) return false;
+// bool buffer_try_write_all(Buffer *b, char* buf, size_t buf_size) {
+//     if (b->remaining < buf_size) return false;
+//     printf("Buffer is: %s\n", buf);
+//     printf("Size of buffer: %zu", buf_size);
+//     memcpy((void*) b->ptr, (void*) buf, buf_size);
+//     b->remaining -= buf_size;
+//     b->ptr += buf_size;
+//     return true;
+// }
 
+bool buffer_try_write_all(Buffer *b, char* buf, size_t buf_size) {
+    if (b->remaining < buf_size+sizeof(size_t)) return false;
+    printf("Buffer is: %s\n", buf);
+    printf("Size of buffer: %zu", buf_size);
+    *(size_t *) b->ptr = buf_size; // might have to use htonl() and ntohl() if non-x86 boxes involved
+    b->ptr += sizeof(size_t);
     memcpy((void*) b->ptr, (void*) buf, buf_size);
-    b->remaining -= buf_size;
+    b->remaining -= buf_size + sizeof(size_t);
     b->ptr += buf_size;
     return true;
 }
