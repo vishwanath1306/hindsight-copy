@@ -1,0 +1,7 @@
+syntax="proto3";
+
+message Tracepoint{
+    string tracepoint_text = 1;
+    string service_name = 2;
+    uint64 curr_time = 3; 
+}

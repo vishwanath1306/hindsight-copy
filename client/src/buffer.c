@@ -5,9 +5,11 @@
 #include <assert.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <time.h>
 
 #include "buffer.h"
 #include "common.h"
+#include "tracepoint.pb-c.h"
 
 #define POOL_SHM_FILENAME(name) get_shm_fname(name, "pool")
 #define AVAILABLE_SHM_FILENAME(name) get_shm_fname(name, "available_queue")
@@ -247,12 +249,23 @@ void buffer_write(Buffer* b, size_t size, char** dst, size_t* dst_size) {
 
 bool buffer_try_write_all(Buffer *b, char* buf, size_t buf_size) {
     if (b->remaining < buf_size+sizeof(size_t)) return false;
-    printf("Buffer is: %s\n", buf);
-    printf("Size of buffer: %d\n", buf_size);
-    printf("Size of size(t): %d\n", sizeof(size_t));
+    Tracepoint tracepoint = TRACEPOINT__INIT;
+    tracepoint.tracepoint_text = buf;
+    tracepoint.service_name = "random";
+    tracepoint.curr_time = time(NULL);
+    size_t buffer_size = tracepoint__get_packed_size(&tracepoint);
+    printf("Size of packed buffer: %d\n", buffer_size);
+    static char buffer[8192];
+    memset(buffer, 0, sizeof(buffer));
+    assert(buffer_size < sizeof(buffer));
+    tracepoint__pack(&tracepoint, buffer);
+    // printf("Buffer is: %s\n", buf);
+    // printf("Size of buffer: %d\n", buffer_size);
+    // printf("Size of size(t): %d\n", sizeof(size_t));
     *(size_t *) b->ptr = buf_size; // might have to use htonl() and ntohl() if non-x86 boxes involved
     b->ptr += sizeof(size_t);
-    memcpy((void*) b->ptr, (void*) buf, buf_size);
+    // memcpy((void*) b->ptr, (void*) buf, buf_size);
+    memcpy((void*) b->ptr, buffer, buffer_size);
     b->remaining -= buf_size + sizeof(size_t);
     b->ptr += buf_size;
     return true;
