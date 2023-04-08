@@ -17,14 +17,15 @@ STATIC_LDFLAGS = -fPIC
 LDFLAGS = $(STATIC_LDFLAGS) -shared
 LIBRARY = $(LIBDIR)/libtracer.so
 STATIC_LIBRARY = $(LIBDIR)/libtracer.a
-SRCFILES = $(SRCDIR)/agentapi.c $(SRCDIR)/breadcrumb.c $(SRCDIR)/buffer.c $(SRCDIR)/common.c $(SRCDIR)/hindsight.c $(SRCDIR)/queue.c $(SRCDIR)/tracestate.c $(SRCDIR)/trigger.c
+SRCFILES = $(SRCDIR)/agentapi.c $(SRCDIR)/breadcrumb.c $(SRCDIR)/buffer.c $(SRCDIR)/common.c $(SRCDIR)/hindsight.c $(SRCDIR)/queue.c $(SRCDIR)/tracestate.c $(SRCDIR)/trigger.c $(SRCDIR)/tracepoint.pb-c.c
 
 DEPFILES := $(SRCFILES:%.c=$(DEPDIR)/%.d)
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d 
 OBJFILES = ${SRCFILES:.c=.o}
 INCLUDEFLAGS = -I $(SRCDIR) -I $(INCLUDEDIR)
-PROTOFILES = $(INCLUDEDIR)/tracepoint.pb-c.c $(INCLUDEDIR)/tracepoint.pb-c.h
-PTHREADFLAGS = -lpthread -lm
+PROTOFILES = $(SRCDIR)/tracepoint.pb-c.c
+PROTOOBJFILES = $(PROTOFILES:.c=.o)
+PTHREADFLAGS = -lpthread -lm -lprotobuf-c
 
 TARGET = dirs bin/breadcrumbs_test bin/benchmark_test bin/triggers_test bin/trigger_benchmark_test bin/buffer_test bin/queue_test bin/hindsight_test bin/hindsight2_test bin/sampling_test $(LIBRARY) $(STATIC_LIBRARY)
 .PHONY: all debug
@@ -43,14 +44,17 @@ $(BINDIR)/%_test: $(TESTDIR)/%.c $(OBJFILES)
 
 ### LIBRARIES
 $(STATIC_LIBRARY): $(OBJFILES) 
-	$(AR) $(ARFLAGS) $@ $(OBJFILES)
+	$(AR) $(ARFLAGS) $@ $(OBJFILES) 
 
 $(LIBRARY): $(OBJFILES) 
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(OBJFILES) $(INCLUDEFLAGS) $(PTHREADFLAGS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(OBJFILES)  $(INCLUDEFLAGS) $(PTHREADFLAGS)
 
 
 ### OBJECTS
 %.o : %.c $(DEPDIR) Makefile #$(DEPDIR)/%.d
+	$(CC) $(CFLAGS) $(STATIC_LDFLAGS) $(INCLUDEFLAGS) $(PTHREADFLAGS) $(DEPFLAGS)  -c -o $@ $<
+
+$(PROTOOBJFILES) : $(PROTOFILES) # $(DEPDIR) Makefile #$(DEPDIR)/%.d
 	$(CC) $(CFLAGS) $(STATIC_LDFLAGS) $(INCLUDEFLAGS) $(PTHREADFLAGS) $(DEPFLAGS)  -c -o $@ $<
 
 $(DEPDIR): ; @mkdir -p $@ $@/$(SRCDIR) $@/$(TESTDIR)
@@ -70,4 +74,4 @@ clean:
 	rm -rf $(SRCDIR)/*.o
 
 proto: 
-	protoc --c_out=$(INCLUDEDIR)/ proto/tracepoint.proto
+	protoc --c_out=$(SRCDIR)/ proto/tracepoint.proto

@@ -253,13 +253,15 @@ bool buffer_try_write_all(Buffer *b, char* buf, size_t buf_size) {
     tracepoint.tracepoint_text = buf;
     tracepoint.service_name = "random";
     tracepoint.curr_time = time(NULL);
-    void *buffer;
     size_t buffer_size = tracepoint__get_packed_size(&tracepoint);
-    buffer = malloc(buffer_size);
+    printf("Size of packed buffer: %d\n", buffer_size);
+    static char buffer[8192];
+    memset(buffer, 0, sizeof(buffer));
+    assert(buffer_size < sizeof(buffer));
     tracepoint__pack(&tracepoint, buffer);
-    printf("Buffer is: %s\n", buf);
-    printf("Size of buffer: %d\n", buf_size);
-    printf("Size of size(t): %d\n", sizeof(size_t));
+    // printf("Buffer is: %s\n", buf);
+    // printf("Size of buffer: %d\n", buffer_size);
+    // printf("Size of size(t): %d\n", sizeof(size_t));
     *(size_t *) b->ptr = buf_size; // might have to use htonl() and ntohl() if non-x86 boxes involved
     b->ptr += sizeof(size_t);
     // memcpy((void*) b->ptr, (void*) buf, buf_size);
